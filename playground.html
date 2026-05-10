@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Model Playground</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'IBM Plex Sans', sans-serif; }
+    code, .mono { font-family: 'IBM Plex Mono', monospace; }
+    .dot-pulse span { animation: pulse 1.2s ease-in-out infinite; }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+    textarea:focus { outline: none; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
+
+  <!-- Top bar -->
+  <header class="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-2 h-2 rounded-full bg-violet-400"></div>
+      <span class="mono text-sm text-zinc-300 tracking-tight">multi-model-playground</span>
+    </div>
+    <button onclick="document.getElementById('key-modal').classList.remove('hidden')"
+      class="mono text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors">
+      + api keys
+    </button>
+  </header>
+
+  <!-- Model toggles -->
+  <div class="border-b border-zinc-800 px-5 py-3 flex gap-2 flex-wrap">
+    <button id="toggle-gemini"    onclick="toggleModel('gemini')"     class="model-toggle active mono text-xs px-3 py-1.5 rounded-full border border-blue-500/50 bg-blue-500/10 text-blue-300 transition-all">gemini</button>
+    <button id="toggle-groq"      onclick="toggleModel('groq')"       class="model-toggle active mono text-xs px-3 py-1.5 rounded-full border border-orange-500/50 bg-orange-500/10 text-orange-300 transition-all">groq</button>
+    <button id="toggle-openrouter" onclick="toggleModel('openrouter')" class="model-toggle active mono text-xs px-3 py-1.5 rounded-full border border-violet-500/50 bg-violet-500/10 text-violet-300 transition-all">openrouter</button>
+    <button id="toggle-cerebras"  onclick="toggleModel('cerebras')"   class="model-toggle active mono text-xs px-3 py-1.5 rounded-full border border-emerald-500/50 bg-emerald-500/10 text-emerald-300 transition-all">cerebras</button>
+    <span class="ml-auto mono text-xs text-zinc-600 self-center" id="active-label">4 active</span>
+  </div>
+
+  <!-- Chat -->
+  <div class="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5" id="chat">
+    <div id="empty-state" class="m-auto text-center max-w-sm">
+      <p class="mono text-xs text-zinc-600 mb-4">send a message to compare responses</p>
+      <div class="flex flex-wrap gap-2 justify-center">
+        <button onclick="usePrompt('Explain quantum entanglement simply')" class="mono text-xs px-3 py-1.5 rounded border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600 transition-colors">quantum entanglement</button>
+        <button onclick="usePrompt('Write a haiku about debugging code')" class="mono text-xs px-3 py-1.5 rounded border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600 transition-colors">haiku about debugging</button>
+        <button onclick="usePrompt('What is the best way to learn a new language?')" class="mono text-xs px-3 py-1.5 rounded border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600 transition-colors">learn a language</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="border-t border-zinc-800 px-5 py-4">
+    <div class="flex gap-3 items-end max-w-4xl mx-auto">
+      <div class="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 focus-within:border-zinc-500 transition-colors">
+        <textarea id="prompt" rows="1" placeholder="Ask all models something..."
+          class="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-600 resize-none max-h-32"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
+      </div>
+      <button onclick="send()" id="send-btn"
+        class="px-4 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">
+        send
+      </button>
+    </div>
+  </div>
+
+  <!-- API Key Modal -->
+  <div id="key-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md">
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="font-medium text-sm">api keys</h2>
+        <button onclick="document.getElementById('key-modal').classList.add('hidden')" class="text-zinc-500 hover:text-zinc-300 text-lg leading-none">&times;</button>
+      </div>
+      <p class="mono text-xs text-zinc-500 mb-5">stored in memory only — never logged or sent elsewhere</p>
+
+      <div class="flex flex-col gap-3">
+        <div>
+          <label class="mono text-xs text-blue-400 block mb-1.5">gemini <span class="text-zinc-600">· aistudio.google.com</span></label>
+          <input id="key-gemini" type="password" placeholder="AIza..."
+            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500" />
+        </div>
+        <div>
+          <label class="mono text-xs text-orange-400 block mb-1.5">groq <span class="text-zinc-600">· console.groq.com</span></label>
+          <input id="key-groq" type="password" placeholder="gsk_..."
+            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500" />
+        </div>
+        <div>
+          <label class="mono text-xs text-violet-400 block mb-1.5">openrouter <span class="text-zinc-600">· openrouter.ai/keys</span></label>
+          <input id="key-openrouter" type="password" placeholder="sk-or-..."
+            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500" />
+        </div>
+        <div>
+          <label class="mono text-xs text-emerald-400 block mb-1.5">cerebras <span class="text-zinc-600">· cloud.cerebras.ai</span></label>
+          <input id="key-cerebras" type="password" placeholder="csk-..."
+            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500" />
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button onclick="document.getElementById('key-modal').classList.add('hidden')"
+          class="mono text-xs px-4 py-2 rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors">cancel</button>
+        <button onclick="saveKeys()"
+          class="mono text-xs px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors">save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const keys = { gemini:'', groq:'', openrouter:'', cerebras:'' };
+const active = { gemini:true, groq:true, openrouter:true, cerebras:true };
+const colors = {
+  gemini:     { label:'Gemini 2.5 Flash', dot:'bg-blue-400',    text:'text-blue-400',    ring:'border-blue-500/40' },
+  groq:       { label:'Groq Llama 70B',   dot:'bg-orange-400',  text:'text-orange-400',  ring:'border-orange-500/40' },
+  openrouter: { label:'OpenRouter',       dot:'bg-violet-400',  text:'text-violet-400',  ring:'border-violet-500/40' },
+  cerebras:   { label:'Cerebras Llama',   dot:'bg-emerald-400', text:'text-emerald-400', ring:'border-emerald-500/40' },
+};
+
+function toggleModel(id) {
+  active[id] = !active[id];
+  const btn = document.getElementById('toggle-' + id);
+  btn.classList.toggle('opacity-30', !active[id]);
+  const count = Object.values(active).filter(Boolean).length;
+  document.getElementById('active-label').textContent = count + ' active';
+}
+
+function saveKeys() {
+  ['gemini','groq','openrouter','cerebras'].forEach(id => {
+    keys[id] = document.getElementById('key-' + id).value.trim();
+  });
+  document.getElementById('key-modal').classList.add('hidden');
+}
+
+function usePrompt(text) {
+  document.getElementById('prompt').value = text;
+}
+
+function send() {
+  const ta = document.getElementById('prompt');
+  const text = ta.value.trim();
+  if (!text) return;
+
+  document.getElementById('empty-state')?.remove();
+  ta.value = '';
+  ta.style.height = 'auto';
+
+  // User message
+  const chat = document.getElementById('chat');
+  const userRow = document.createElement('div');
+  userRow.className = 'flex justify-end';
+  userRow.innerHTML = `<div class="max-w-lg bg-zinc-800 text-zinc-100 text-sm px-4 py-2.5 rounded-2xl rounded-tr-sm">${escHtml(text)}</div>`;
+  chat.appendChild(userRow);
+
+  // Response grid
+  const grid = document.createElement('div');
+  grid.className = 'grid gap-3 ' + (Object.values(active).filter(Boolean).length > 2 ? 'grid-cols-2' : 'grid-cols-1');
+  chat.appendChild(grid);
+  chat.scrollTop = chat.scrollHeight;
+
+  const activeModels = Object.keys(active).filter(id => active[id]);
+  activeModels.forEach(id => {
+    const card = document.createElement('div');
+    card.className = `bg-zinc-900 border ${colors[id].ring} border rounded-xl p-4`;
+    card.innerHTML = `
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-1.5 h-1.5 rounded-full ${colors[id].dot}"></div>
+        <span class="mono text-xs ${colors[id].text}">${colors[id].label}</span>
+        <span class="ml-auto mono text-xs text-zinc-600" id="time-${id}-${Date.now()}">—</span>
+      </div>
+      <div id="resp-${id}" class="text-sm text-zinc-300 leading-relaxed">
+        <div class="dot-pulse flex gap-1">
+          <span class="w-1 h-1 rounded-full bg-zinc-500 block"></span>
+          <span class="w-1 h-1 rounded-full bg-zinc-500 block"></span>
+          <span class="w-1 h-1 rounded-full bg-zinc-500 block"></span>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+
+    const timeId = card.querySelector('[id^="time-"]').id;
+    const t0 = Date.now();
+    callModel(id, text).then(resp => {
+      card.querySelector('#resp-' + id).innerHTML = `<p>${escHtml(resp)}</p>`;
+      card.querySelector('#' + timeId).textContent = (Date.now() - t0) + 'ms';
+      chat.scrollTop = chat.scrollHeight;
+    }).catch(err => {
+      card.querySelector('#resp-' + id).innerHTML = `<p class="text-red-400 mono text-xs">${err.message}</p>`;
+    });
+  });
+}
+
+async function callModel(id, prompt) {
+  if (!keys[id]) return '⚠ No API key set. Click "api keys" above to add one.';
+  if (id === 'gemini') {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${keys.gemini}`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    return d?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No response';
+  }
+  if (id === 'groq') {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+keys.groq},
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{role:'user',content:prompt}], max_tokens: 512 })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    return d?.choices?.[0]?.message?.content ?? 'No response';
+  }
+  if (id === 'openrouter') {
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+keys.openrouter},
+      body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages: [{role:'user',content:prompt}], max_tokens: 512 })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+    return d?.choices?.[0]?.message?.content ?? 'No response';
+  }
+  if (id === 'cerebras') {
+    const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+      method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+keys.cerebras},
+      body: JSON.stringify({ model: 'llama-3.3-70b', messages: [{role:'user',content:prompt}], max_tokens: 512 })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+    return d?.choices?.[0]?.message?.content ?? 'No response';
+  }
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+</script>
+</body>
+</html>
