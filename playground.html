@@ -72,52 +72,74 @@
   <!-- API Key Modal -->
   <div id="key-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
     <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md">
+
       <div class="flex justify-between items-center mb-1">
         <h2 class="font-medium text-sm">api keys</h2>
-        <button onclick="document.getElementById('key-modal').classList.add('hidden')" class="text-zinc-500 hover:text-zinc-300 text-lg leading-none">&times;</button>
+        <button onclick="closeKeyModal()" class="text-zinc-500 hover:text-zinc-300 text-lg leading-none">&times;</button>
       </div>
-      <p class="mono text-xs text-zinc-500 mb-5">stored in memory only — never logged or sent elsewhere</p>
+      <p class="mono text-xs text-zinc-500 mb-4">stored in memory only — never logged or sent elsewhere</p>
 
-      <div class="flex flex-col gap-3">
-        <div>
-          <label class="mono text-xs text-blue-400 block mb-1.5">gemini <span class="text-zinc-600">· aistudio.google.com</span></label>
-          <input id="key-gemini" type="password" placeholder="AIza..."
-            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500" />
-        </div>
-        <div>
-          <label class="mono text-xs text-orange-400 block mb-1.5">groq <span class="text-zinc-600">· console.groq.com</span></label>
-          <input id="key-groq" type="password" placeholder="gsk_..."
-            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500" />
-        </div>
-        <div>
-          <label class="mono text-xs text-violet-400 block mb-1.5">openrouter <span class="text-zinc-600">· openrouter.ai/keys</span></label>
-          <input id="key-openrouter" type="password" placeholder="sk-or-..."
-            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500" />
-        </div>
-        <div>
-          <label class="mono text-xs text-emerald-400 block mb-1.5">cerebras <span class="text-zinc-600">· cloud.cerebras.ai</span></label>
-          <input id="key-cerebras" type="password" placeholder="csk-..."
-            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500" />
-        </div>
+      <!-- Saved keys list -->
+      <div id="saved-keys-list" class="flex flex-col gap-2 mb-4"></div>
+
+      <!-- Add new key row -->
+      <div class="flex gap-2 items-center">
+        <select id="provider-select"
+          class="mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-zinc-500 flex-shrink-0">
+          <option value="">— pick provider —</option>
+          <optgroup label="Chat / LLM">
+            <option value="gemini">Gemini · aistudio.google.com</option>
+            <option value="groq">Groq · console.groq.com</option>
+            <option value="openrouter">OpenRouter · openrouter.ai/keys</option>
+            <option value="cerebras">Cerebras · cloud.cerebras.ai</option>
+            <option value="openai">OpenAI · platform.openai.com</option>
+            <option value="anthropic">Anthropic / Claude · console.anthropic.com</option>
+            <option value="mistral">Mistral · console.mistral.ai</option>
+            <option value="cohere">Cohere · dashboard.cohere.com</option>
+            <option value="together">Together AI · api.together.xyz</option>
+            <option value="perplexity">Perplexity · perplexity.ai/settings/api</option>
+            <option value="grok">xAI / Grok · console.x.ai</option>
+          </optgroup>
+          <optgroup label="Data / News">
+            <option value="newsapi">NewsAPI · newsapi.org/account</option>
+          </optgroup>
+        </select>
+        <input id="new-key-input" type="password" placeholder="paste key..."
+          class="flex-1 mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          onkeydown="if(event.key==='Enter') addKey()" />
+        <button onclick="addKey()"
+          class="mono text-xs px-3 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors flex-shrink-0">add</button>
       </div>
 
-      <div class="flex justify-end gap-2 mt-5">
-        <button onclick="document.getElementById('key-modal').classList.add('hidden')"
-          class="mono text-xs px-4 py-2 rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors">cancel</button>
-        <button onclick="saveKeys()"
-          class="mono text-xs px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors">save</button>
+      <div class="flex justify-end mt-5">
+        <button onclick="closeKeyModal()"
+          class="mono text-xs px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors">done</button>
       </div>
     </div>
   </div>
 
 <script>
-const keys = { gemini:'', groq:'', openrouter:'', cerebras:'' };
+const keys = {};
 const active = { gemini:true, groq:true, openrouter:true, cerebras:true };
 const colors = {
-  gemini:     { label:'Gemini 2.5 Flash', dot:'bg-blue-400',    text:'text-blue-400',    ring:'border-blue-500/40' },
-  groq:       { label:'Groq Llama 70B',   dot:'bg-orange-400',  text:'text-orange-400',  ring:'border-orange-500/40' },
-  openrouter: { label:'OpenRouter',       dot:'bg-violet-400',  text:'text-violet-400',  ring:'border-violet-500/40' },
-  cerebras:   { label:'Cerebras Llama',   dot:'bg-emerald-400', text:'text-emerald-400', ring:'border-emerald-500/40' },
+  gemini:     { label:'Gemini 2.5 Flash',  dot:'bg-blue-400',    text:'text-blue-400',    ring:'border-blue-500/40' },
+  groq:       { label:'Groq Llama 70B',    dot:'bg-orange-400',  text:'text-orange-400',  ring:'border-orange-500/40' },
+  openrouter: { label:'OpenRouter',        dot:'bg-violet-400',  text:'text-violet-400',  ring:'border-violet-500/40' },
+  cerebras:   { label:'Cerebras Llama',    dot:'bg-emerald-400', text:'text-emerald-400', ring:'border-emerald-500/40' },
+  openai:     { label:'OpenAI GPT-4o',     dot:'bg-green-400',   text:'text-green-400',   ring:'border-green-500/40' },
+  anthropic:  { label:'Claude 3.5 Sonnet', dot:'bg-amber-400',   text:'text-amber-400',   ring:'border-amber-500/40' },
+  mistral:    { label:'Mistral Large',     dot:'bg-rose-400',    text:'text-rose-400',    ring:'border-rose-500/40' },
+  cohere:     { label:'Cohere Command R',  dot:'bg-cyan-400',    text:'text-cyan-400',    ring:'border-cyan-500/40' },
+  together:   { label:'Together AI',       dot:'bg-pink-400',    text:'text-pink-400',    ring:'border-pink-500/40' },
+  perplexity: { label:'Perplexity',        dot:'bg-sky-400',     text:'text-sky-400',     ring:'border-sky-500/40' },
+  grok:       { label:'xAI Grok',          dot:'bg-zinc-400',    text:'text-zinc-300',    ring:'border-zinc-500/40' },
+  newsapi:    { label:'NewsAPI',           dot:'bg-lime-400',    text:'text-lime-400',    ring:'border-lime-500/40' },
+};
+
+const providerLabels = {
+  gemini:'Gemini', groq:'Groq', openrouter:'OpenRouter', cerebras:'Cerebras',
+  openai:'OpenAI', anthropic:'Anthropic', mistral:'Mistral', cohere:'Cohere',
+  together:'Together AI', perplexity:'Perplexity', grok:'xAI / Grok', newsapi:'NewsAPI'
 };
 
 function toggleModel(id) {
@@ -128,12 +150,50 @@ function toggleModel(id) {
   document.getElementById('active-label').textContent = count + ' active';
 }
 
-function saveKeys() {
-  ['gemini','groq','openrouter','cerebras'].forEach(id => {
-    keys[id] = document.getElementById('key-' + id).value.trim();
-  });
+function addKey() {
+  const provider = document.getElementById('provider-select').value;
+  const val = document.getElementById('new-key-input').value.trim();
+  if (!provider || !val) return;
+  keys[provider] = val;
+  document.getElementById('new-key-input').value = '';
+  document.getElementById('provider-select').value = '';
+  renderSavedKeys();
+}
+
+function removeKey(provider) {
+  delete keys[provider];
+  renderSavedKeys();
+}
+
+function renderSavedKeys() {
+  const list = document.getElementById('saved-keys-list');
+  const saved = Object.keys(keys).filter(k => keys[k]);
+  if (saved.length === 0) {
+    list.innerHTML = '<p class="mono text-xs text-zinc-600 text-center py-2">no keys added yet</p>';
+    return;
+  }
+  list.innerHTML = saved.map(id => {
+    const c = colors[id] || {};
+    const label = providerLabels[id] || id;
+    const masked = keys[id].slice(0,6) + '••••••••';
+    return `<div class="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2">
+      <div class="w-1.5 h-1.5 rounded-full ${c.dot || 'bg-zinc-400'} flex-shrink-0"></div>
+      <span class="mono text-xs ${c.text || 'text-zinc-300'} flex-shrink-0">${label}</span>
+      <span class="mono text-xs text-zinc-600 flex-1 truncate">${masked}</span>
+      <button onclick="removeKey('${id}')" class="mono text-xs text-zinc-600 hover:text-red-400 transition-colors flex-shrink-0">remove</button>
+    </div>`;
+  }).join('');
+}
+
+function closeKeyModal() {
   document.getElementById('key-modal').classList.add('hidden');
 }
+
+document.getElementById('key-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeKeyModal();
+});
+
+renderSavedKeys();
 
 function usePrompt(text) {
   document.getElementById('prompt').value = text;
