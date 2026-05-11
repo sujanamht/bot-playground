@@ -94,6 +94,9 @@
   </div>
 
 <script>
+  // Redirect if already authenticated
+  if (localStorage.getItem('pg_token')) location.href = 'playground.html';
+
   let mode = 'login'; // 'login' | 'register'
 
   function toggleMode() {
@@ -112,7 +115,7 @@
     clearStatus();
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const btn = document.getElementById('submit-btn');
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
@@ -132,23 +135,29 @@
       }
     }
 
-    // Fake loading state
     btn.disabled = true;
     btn.textContent = mode === 'login' ? 'signing in...' : 'creating account...';
 
-    console.log(`[auth] mode=${mode}`, { username, password });
-
-    setTimeout(() => {
+    const endpoint = mode === 'login' ? '/api/login' : '/api/register';
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showStatus(data.error || 'something went wrong', 'error');
+      } else {
+        localStorage.setItem('pg_token', data.token);
+        location.href = 'playground.html';
+      }
+    } catch {
+      showStatus('could not reach server', 'error');
+    } finally {
       btn.disabled = false;
       btn.textContent = mode === 'login' ? 'sign in' : 'create account';
-
-      if (mode === 'login') {
-        showStatus('invalid credentials', 'error');
-      } else {
-        showStatus('account created — you can now sign in', 'success');
-        toggleMode();
-      }
-    }, 1500);
+    }
   }
 
   function showStatus(msg, type) {

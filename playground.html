@@ -31,7 +31,7 @@
         class="mono text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors">
         + api keys
       </button>
-      <button class="mono text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
+      <button onclick="logout()" class="mono text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
         logout
       </button>
     </div>
@@ -132,6 +132,7 @@
           class="w-full mono text-xs py-2.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors">
           add key
         </button>
+        <p id="key-modal-error" class="mono text-xs text-red-400 hidden"></p>
       </div>
 
       <!-- Done button -->
@@ -174,19 +175,49 @@ function toggleModel(id) {
   document.getElementById('active-label').textContent = count + ' active';
 }
 
-function addKey() {
+async function addKey() {
   const provider = document.getElementById('provider-select').value;
   const val = document.getElementById('new-key-input').value.trim();
   if (!provider || !val) return;
-  keys[provider] = val;
-  document.getElementById('new-key-input').value = '';
-  document.getElementById('provider-select').value = '';
-  renderSavedKeys();
+  const errEl = document.getElementById('key-modal-error');
+  errEl.classList.add('hidden');
+  const token = localStorage.getItem('pg_token');
+  try {
+    const res = await fetch('/api/keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ provider, key: val }),
+    });
+    if (res.status === 401) { handleUnauth(); return; }
+    if (!res.ok) {
+      const d = await res.json();
+      errEl.textContent = d.error || 'failed to save key';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    keys[provider] = val;
+    document.getElementById('new-key-input').value = '';
+    document.getElementById('provider-select').value = '';
+    renderSavedKeys();
+  } catch {
+    errEl.textContent = 'could not reach server';
+    errEl.classList.remove('hidden');
+  }
 }
 
-function removeKey(provider) {
-  delete keys[provider];
-  renderSavedKeys();
+async function removeKey(provider) {
+  const token = localStorage.getItem('pg_token');
+  try {
+    const res = await fetch('/api/keys/' + provider, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token },
+    });
+    if (res.status === 401) { handleUnauth(); return; }
+    delete keys[provider];
+    renderSavedKeys();
+  } catch {
+    // silently fail — key stays in UI
+  }
 }
 
 function renderSavedKeys() {
@@ -223,7 +254,36 @@ document.getElementById('key-modal').addEventListener('click', function(e) {
   if (e.target === this) closeKeyModal();
 });
 
-renderSavedKeys();
+function handleUnauth() {
+  localStorage.removeItem('pg_token');
+  location.href = 'login.html';
+}
+
+function logout() {
+  localStorage.removeItem('pg_token');
+  location.href = 'login.html';
+}
+
+async function initPage() {
+  const token = localStorage.getItem('pg_token');
+  if (!token) { location.href = 'login.html'; return; }
+  try {
+    const res = await fetch('/api/keys', {
+      headers: { 'Authorization': 'Bearer ' + token },
+    });
+    if (res.status === 401) { handleUnauth(); return; }
+    if (res.ok) {
+      const data = await res.json();
+      data.keys.forEach(item => { keys[item.provider] = item.key; });
+      renderSavedKeys();
+    }
+  } catch {
+    // server unreachable — continue with empty keys
+    renderSavedKeys();
+  }
+}
+
+initPage();
 
 function usePrompt(text) {
   document.getElementById('prompt').value = text;

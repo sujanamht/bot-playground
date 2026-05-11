@@ -45,7 +45,7 @@ router.get('/', (req, res) => {
 
     const keys = rows.map((row) => ({
       provider: row.provider,
-      key: maskKey(decrypt(row.encrypted_key)),
+      key: decrypt(row.encrypted_key),
       created_at: row.created_at,
     }));
 
