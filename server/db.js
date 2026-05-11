@@ -17,9 +17,13 @@ const dbReady = (async () => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
     password_hash TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  // Migration: add email column to existing databases
+  try { db.run('ALTER TABLE users ADD COLUMN email TEXT UNIQUE'); } catch (_) { /* already exists */ }
 
   db.run(`CREATE TABLE IF NOT EXISTS api_keys (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

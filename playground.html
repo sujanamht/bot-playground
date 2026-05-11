@@ -26,7 +26,8 @@
       <div class="w-2 h-2 rounded-full bg-violet-400"></div>
       <span class="mono text-sm text-zinc-300 tracking-tight">multi-model-playground</span>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3">
+      <span id="user-label" class="mono text-xs text-zinc-400"></span>
       <button onclick="document.getElementById('key-modal').classList.remove('hidden')"
         class="mono text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors">
         + api keys
@@ -267,6 +268,13 @@ function logout() {
 async function initPage() {
   const token = localStorage.getItem('pg_token');
   if (!token) { location.href = 'login.html'; return; }
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const display = payload.username || payload.email || '';
+    if (display) document.getElementById('user-label').textContent = 'hey, ' + display;
+  } catch { /* malformed token — ignore */ }
+
   try {
     const res = await fetch('/api/keys', {
       headers: { 'Authorization': 'Bearer ' + token },
