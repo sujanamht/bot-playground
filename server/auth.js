@@ -23,7 +23,8 @@ router.post('/register', async (req, res) => {
     const userId = idRes[0].values[0][0];
 
     const token = jwt.sign({ userId, username, email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, username });
+    res.cookie('pg_token', token, { httpOnly: true, sameSite: 'Strict', path: '/', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.status(201).json({ username });
   } catch (err) {
     if (err.message.includes('UNIQUE constraint failed: users.username')) {
       return res.status(409).json({ error: 'Username already taken' });
@@ -58,7 +59,8 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user.id, username: user.username, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, username: user.username });
+    res.cookie('pg_token', token, { httpOnly: true, sameSite: 'Strict', path: '/', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.json({ username: user.username });
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
   }
