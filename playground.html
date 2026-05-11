@@ -71,47 +71,66 @@
 
   <!-- API Key Modal -->
   <div id="key-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
-    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-7 w-full max-w-lg">
 
+      <!-- Header -->
       <div class="flex justify-between items-center mb-1">
         <h2 class="font-medium text-sm">api keys</h2>
-        <button onclick="closeKeyModal()" class="text-zinc-500 hover:text-zinc-300 text-lg leading-none">&times;</button>
+        <button onclick="closeKeyModal()" class="text-zinc-500 hover:text-zinc-300 text-xl leading-none">&times;</button>
       </div>
-      <p class="mono text-xs text-zinc-500 mb-4">stored in memory only — never logged or sent elsewhere</p>
+      <p class="mono text-xs text-zinc-500 mb-6">stored in memory only — never logged or sent elsewhere</p>
 
       <!-- Saved keys list -->
-      <div id="saved-keys-list" class="flex flex-col gap-2 mb-4"></div>
+      <div id="saved-keys-list" class="flex flex-col gap-2"></div>
 
-      <!-- Add new key row -->
-      <div class="flex gap-2 items-center">
-        <select id="provider-select"
-          class="mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-zinc-500 flex-shrink-0">
-          <option value="">— pick provider —</option>
-          <optgroup label="Chat / LLM">
-            <option value="gemini">Gemini · aistudio.google.com</option>
-            <option value="groq">Groq · console.groq.com</option>
-            <option value="openrouter">OpenRouter · openrouter.ai/keys</option>
-            <option value="cerebras">Cerebras · cloud.cerebras.ai</option>
-            <option value="openai">OpenAI · platform.openai.com</option>
-            <option value="anthropic">Anthropic / Claude · console.anthropic.com</option>
-            <option value="mistral">Mistral · console.mistral.ai</option>
-            <option value="cohere">Cohere · dashboard.cohere.com</option>
-            <option value="together">Together AI · api.together.xyz</option>
-            <option value="perplexity">Perplexity · perplexity.ai/settings/api</option>
-            <option value="grok">xAI / Grok · console.x.ai</option>
-          </optgroup>
-          <optgroup label="Data / News">
-            <option value="newsapi">NewsAPI · newsapi.org/account</option>
-          </optgroup>
-        </select>
-        <input id="new-key-input" type="password" placeholder="paste key..."
-          class="flex-1 mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
-          onkeydown="if(event.key==='Enter') addKey()" />
+      <!-- Divider -->
+      <div class="border-t border-zinc-800 my-5"></div>
+
+      <!-- Add new key section -->
+      <div class="flex flex-col gap-3">
+
+        <!-- Step 1: Provider -->
+        <div>
+          <label class="mono text-xs text-zinc-500 block mb-1.5">provider</label>
+          <select id="provider-select" onchange="updateKeyLabel()"
+            class="mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-300 focus:outline-none focus:border-zinc-500 w-full">
+            <option value="">— pick a provider —</option>
+            <optgroup label="Chat / LLM">
+              <option value="gemini">Gemini · aistudio.google.com</option>
+              <option value="groq">Groq · console.groq.com</option>
+              <option value="openrouter">OpenRouter · openrouter.ai/keys</option>
+              <option value="cerebras">Cerebras · cloud.cerebras.ai</option>
+              <option value="openai">OpenAI · platform.openai.com</option>
+              <option value="anthropic">Anthropic / Claude · console.anthropic.com</option>
+              <option value="mistral">Mistral · console.mistral.ai</option>
+              <option value="cohere">Cohere · dashboard.cohere.com</option>
+              <option value="together">Together AI · api.together.xyz</option>
+              <option value="perplexity">Perplexity · perplexity.ai/settings/api</option>
+              <option value="grok">xAI / Grok · console.x.ai</option>
+            </optgroup>
+            <optgroup label="Data / News">
+              <option value="newsapi">NewsAPI · newsapi.org/account</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Step 2: Key input -->
+        <div>
+          <label id="key-input-label" class="mono text-xs text-zinc-500 block mb-1.5">api key</label>
+          <input id="new-key-input" type="password" placeholder="paste your key here..."
+            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+            onkeydown="if(event.key==='Enter') addKey()" />
+        </div>
+
+        <!-- Step 3: Add button -->
         <button onclick="addKey()"
-          class="mono text-xs px-3 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors flex-shrink-0">add</button>
+          class="w-full mono text-xs py-2.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors">
+          add key
+        </button>
       </div>
 
-      <div class="flex justify-end mt-5">
+      <!-- Done button -->
+      <div class="flex justify-end mt-6">
         <button onclick="closeKeyModal()"
           class="mono text-xs px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors">done</button>
       </div>
@@ -183,6 +202,12 @@ function renderSavedKeys() {
       <button onclick="removeKey('${id}')" class="mono text-xs text-zinc-600 hover:text-red-400 transition-colors flex-shrink-0">remove</button>
     </div>`;
   }).join('');
+}
+
+function updateKeyLabel() {
+  const provider = document.getElementById('provider-select').value;
+  const label = document.getElementById('key-input-label');
+  label.textContent = provider ? (providerLabels[provider] || provider) + ' api key' : 'api key';
 }
 
 function closeKeyModal() {
