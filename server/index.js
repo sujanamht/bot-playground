@@ -1,7 +1,6 @@
 require('dotenv').config({ path: __dirname + '/.env' });
 
 const express = require('express');
-const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 
@@ -11,7 +10,13 @@ const keysRouter = require('./keys');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors({ origin: ['http://localhost:3000', 'http://127.0.0.1:3000'] }));
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
 app.use(express.json());
 
 // Serve static HTML files from the project root
