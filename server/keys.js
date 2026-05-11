@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const db = require('./db');
+const { dbReady, saveDb } = require('./db');
 
 const router = express.Router();
 const ALGORITHM = 'aes-256-gcm';
@@ -31,17 +31,15 @@ function decrypt(stored) {
   return decipher.update(encrypted) + decipher.final('utf8');
 }
 
-function maskKey(plaintext) {
-  if (plaintext.length <= 4) return '****';
-  return '*'.repeat(plaintext.length - 4) + plaintext.slice(-4);
-}
-
-// GET /api/keys — list all keys for the logged-in user (masked)
-router.get('/', (req, res) => {
+// GET /api/keys — list all keys for the logged-in user
+router.get('/', async (req, res) => {
   try {
-    const rows = db
-      .prepare('SELECT provider, encrypted_key, created_at FROM api_keys WHERE user_id = ?')
-      .all(req.user.userId);
+    const db = await dbReady;
+    const stmt = db.prepare('SELECT provider, encrypted_key, created_at FROM api_keys WHERE user_id = ?');
+    stmt.bind([req.user.userId]);
+    const rows = [];
+    while (stmt.step()) rows.push(stmt.getAsObject());
+    stmt.free();
 
     const keys = rows.map((row) => ({
       provider: row.provider,
@@ -56,19 +54,20 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/keys — store an encrypted API key
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { provider, key } = req.body;
   if (!provider || !key) {
     return res.status(400).json({ error: 'provider and key are required' });
   }
 
   try {
+    const db = await dbReady;
     const encrypted_key = encrypt(key);
-    db.prepare(
-      `INSERT INTO api_keys (user_id, provider, encrypted_key)
-       VALUES (?, ?, ?)
-       ON CONFLICT(user_id, provider) DO UPDATE SET encrypted_key = excluded.encrypted_key, created_at = CURRENT_TIMESTAMP`
-    ).run(req.user.userId, provider, encrypted_key);
+    db.run(
+      'INSERT OR REPLACE INTO api_keys (user_id, provider, encrypted_key) VALUES (?, ?, ?)',
+      [req.user.userId, provider, encrypted_key]
+    );
+    saveDb(db);
 
     res.status(201).json({ message: 'Key saved' });
   } catch (err) {
@@ -77,13 +76,17 @@ router.post('/', (req, res) => {
 });
 
 // DELETE /api/keys/:provider — remove a key
-router.delete('/:provider', (req, res) => {
+router.delete('/:provider', async (req, res) => {
   try {
-    const result = db
-      .prepare('DELETE FROM api_keys WHERE user_id = ? AND provider = ?')
-      .run(req.user.userId, req.params.provider);
+    const db = await dbReady;
+    db.run('DELETE FROM api_keys WHERE user_id = ? AND provider = ?', [
+      req.user.userId,
+      req.params.provider,
+    ]);
+    const changes = db.getRowsModified();
+    saveDb(db);
 
-    if (result.changes === 0) {
+    if (changes === 0) {
       return res.status(404).json({ error: 'Key not found' });
     }
 

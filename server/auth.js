@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const db = require('./db');
+const { dbReady, saveDb } = require('./db');
 
 const router = express.Router();
 const SALT_ROUNDS = 12;
@@ -13,14 +13,16 @@ router.post('/register', async (req, res) => {
   }
 
   try {
+    const db = await dbReady;
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
-    const stmt = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
-    const result = stmt.run(username, password_hash);
 
-    const token = jwt.sign({ userId: result.lastInsertRowid }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    db.run('INSERT INTO users (username, password_hash) VALUES (?, ?)', [username, password_hash]);
+    saveDb(db);
 
+    const idRes = db.exec('SELECT last_insert_rowid()');
+    const userId = idRes[0].values[0][0];
+
+    const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token });
   } catch (err) {
     if (err.message.includes('UNIQUE constraint failed')) {
@@ -37,7 +39,12 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    const db = await dbReady;
+    const stmt = db.prepare('SELECT id, username, password_hash FROM users WHERE username = ?');
+    stmt.bind([username]);
+    const user = stmt.step() ? stmt.getAsObject() : null;
+    stmt.free();
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -47,10 +54,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
-    });
-
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token });
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
