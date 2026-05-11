@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>playground · sign in</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'IBM Plex Sans', sans-serif; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    input:focus { outline: none; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex items-center justify-center px-4">
+
+  <div class="w-full max-w-sm">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2 justify-center mb-8">
+      <div class="w-2 h-2 rounded-full bg-violet-400"></div>
+      <span class="mono text-sm text-zinc-300 tracking-tight">playground</span>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-7">
+
+      <!-- Title -->
+      <h1 id="card-title" class="mono text-xs text-zinc-400 mb-6">sign in</h1>
+
+      <!-- Form -->
+      <form id="auth-form" onsubmit="return false" class="flex flex-col gap-4">
+
+        <!-- Username -->
+        <div>
+          <label class="mono text-xs text-zinc-500 block mb-1.5">username</label>
+          <input id="username" type="text" autocomplete="username" placeholder="your username"
+            class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-200 placeholder-zinc-600 focus:border-zinc-500 transition-colors" />
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label class="mono text-xs text-zinc-500 block mb-1.5">password</label>
+          <div class="relative">
+            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••"
+              class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 pr-9 text-zinc-200 placeholder-zinc-600 focus:border-zinc-500 transition-colors" />
+            <button type="button" onclick="togglePassword()" tabindex="-1"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors">
+              <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm password (register only) -->
+        <div id="confirm-wrap" class="hidden">
+          <label class="mono text-xs text-zinc-500 block mb-1.5">confirm password</label>
+          <div class="relative">
+            <input id="confirm-password" type="password" autocomplete="new-password" placeholder="••••••••"
+              class="w-full mono text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 pr-9 text-zinc-200 placeholder-zinc-600 focus:border-zinc-500 transition-colors" />
+            <button type="button" onclick="toggleConfirm()" tabindex="-1"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors">
+              <svg id="eye-confirm-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit button -->
+        <button id="submit-btn" onclick="handleSubmit()"
+          class="w-full mono text-xs py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 active:scale-95 text-white transition-all mt-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100">
+          sign in
+        </button>
+
+        <!-- Status message -->
+        <p id="status-msg" class="mono text-xs text-center hidden"></p>
+
+      </form>
+    </div>
+
+    <!-- Toggle link -->
+    <p class="mono text-xs text-zinc-600 text-center mt-4">
+      <span id="toggle-label">first time?</span>
+      <button id="toggle-btn" onclick="toggleMode()"
+        class="text-zinc-500 hover:text-zinc-300 transition-colors ml-1 underline underline-offset-2">
+        set up your account
+      </button>
+    </p>
+
+  </div>
+
+<script>
+  let mode = 'login'; // 'login' | 'register'
+
+  function toggleMode() {
+    mode = mode === 'login' ? 'register' : 'login';
+    const isRegister = mode === 'register';
+
+    document.getElementById('card-title').textContent = isRegister ? 'create account' : 'sign in';
+    document.getElementById('submit-btn').textContent = isRegister ? 'create account' : 'sign in';
+    document.getElementById('confirm-wrap').classList.toggle('hidden', !isRegister);
+    document.getElementById('toggle-label').textContent = isRegister ? 'already have an account?' : 'first time?';
+    document.getElementById('toggle-btn').textContent = isRegister ? 'sign in' : 'set up your account';
+
+    // Update autocomplete hint on password field
+    document.getElementById('password').autocomplete = isRegister ? 'new-password' : 'current-password';
+
+    clearStatus();
+  }
+
+  function handleSubmit() {
+    const btn = document.getElementById('submit-btn');
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    clearStatus();
+
+    if (!username || !password) {
+      showStatus('all fields are required', 'error');
+      return;
+    }
+
+    if (mode === 'register') {
+      const confirm = document.getElementById('confirm-password').value;
+      if (password !== confirm) {
+        showStatus('passwords do not match', 'error');
+        return;
+      }
+    }
+
+    // Fake loading state
+    btn.disabled = true;
+    btn.textContent = mode === 'login' ? 'signing in...' : 'creating account...';
+
+    console.log(`[auth] mode=${mode}`, { username, password });
+
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = mode === 'login' ? 'sign in' : 'create account';
+
+      if (mode === 'login') {
+        showStatus('invalid credentials', 'error');
+      } else {
+        showStatus('account created — you can now sign in', 'success');
+        toggleMode();
+      }
+    }, 1500);
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById('status-msg');
+    el.textContent = msg;
+    el.className = 'mono text-xs text-center ' + (type === 'error' ? 'text-red-400' : 'text-emerald-400');
+    el.classList.remove('hidden');
+  }
+
+  function clearStatus() {
+    const el = document.getElementById('status-msg');
+    el.classList.add('hidden');
+    el.textContent = '';
+  }
+
+  function togglePassword() {
+    const input = document.getElementById('password');
+    const icon = document.getElementById('eye-icon');
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    icon.innerHTML = isHidden
+      ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-8-10-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`
+      : `<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>`;
+  }
+
+  function toggleConfirm() {
+    const input = document.getElementById('confirm-password');
+    const icon = document.getElementById('eye-confirm-icon');
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    icon.innerHTML = isHidden
+      ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-8-10-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`
+      : `<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>`;
+  }
+
+  // Allow Enter key to submit
+  document.getElementById('auth-form').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleSubmit();
+  });
+</script>
+</body>
+</html>
