@@ -101,8 +101,8 @@
   </div>
 
 <script>
-  // Redirect if already authenticated
-  if (localStorage.getItem('pg_token')) location.href = 'playground.html';
+  // Redirect if already authenticated (cookie-based — check via protected endpoint)
+  fetch('/api/keys').then(r => { if (r.ok) location.href = 'playground.html'; });
 
   let mode = 'login'; // 'login' | 'register'
 
@@ -176,7 +176,7 @@
       if (!res.ok) {
         showStatus(data.error || 'something went wrong', 'error');
       } else {
-        localStorage.setItem('pg_token', data.token);
+        if (data.username) localStorage.setItem('pg_username', data.username);
         location.href = 'playground.html';
       }
     } catch {

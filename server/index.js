@@ -4,9 +4,15 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const cookie = require('cookie');
 
 const authRouter = require('./auth');
 const keysRouter = require('./keys');
+
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET is not set in environment. Add it to server/.env');
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,11 +40,24 @@ app.use('/api', authRouter);
 
 // JWT middleware for protected routes
 function requireAuth(req, res, next) {
+  let token;
+
+  // Try Authorization header first
   const authHeader = req.headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  }
+
+  // Fall back to httpOnly cookie
+  if (!token && req.headers.cookie) {
+    const cookies = cookie.parse(req.headers.cookie);
+    token = cookies.pg_token;
+  }
+
+  if (!token) {
     return res.status(401).json({ error: 'Missing or invalid Authorization header' });
   }
-  const token = authHeader.slice(7);
+
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();

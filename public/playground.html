@@ -202,11 +202,10 @@ async function addKey() {
   if (!provider || !val) return;
   const errEl = document.getElementById('key-modal-error');
   errEl.classList.add('hidden');
-  const token = localStorage.getItem('pg_token');
   try {
     const res = await fetch('/api/keys', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider, key: val }),
     });
     if (res.status === 401) { handleUnauth(); return; }
@@ -227,11 +226,9 @@ async function addKey() {
 }
 
 async function removeKey(provider) {
-  const token = localStorage.getItem('pg_token');
   try {
     const res = await fetch('/api/keys/' + provider, {
       method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + token },
     });
     if (res.status === 401) { handleUnauth(); return; }
     if (!res.ok) return;
@@ -277,30 +274,22 @@ document.getElementById('key-modal').addEventListener('click', function(e) {
 });
 
 function handleUnauth() {
-  localStorage.removeItem('pg_token');
+  localStorage.removeItem('pg_username');
   location.href = 'login.html';
 }
 
-function logout() {
-  localStorage.removeItem('pg_token');
+async function logout() {
+  localStorage.removeItem('pg_username');
+  await fetch('/api/logout', { method: 'POST' }).catch(() => {});
   location.href = 'login.html';
 }
 
 async function initPage() {
-  const token = localStorage.getItem('pg_token');
-  if (!token) { location.href = 'login.html'; return; }
+  const display = localStorage.getItem('pg_username') || '';
+  if (display) document.getElementById('user-label').textContent = display;
 
   try {
-    // Display-only: decode JWT payload without verification (signature is checked server-side on every API call)
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const display = payload.username || payload.email || '';
-    if (display) document.getElementById('user-label').textContent = display;
-  } catch { /* malformed token — ignore */ }
-
-  try {
-    const res = await fetch('/api/keys', {
-      headers: { 'Authorization': 'Bearer ' + token },
-    });
+    const res = await fetch('/api/keys');
     if (res.status === 401) { handleUnauth(); return; }
     if (res.ok) {
       const data = await res.json();
