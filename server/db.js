@@ -4,8 +4,8 @@ const path = require('path');
 
 const DB_PATH = path.join(__dirname, 'store.db');
 
-function saveDb(db) {
-  fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
+async function saveDb(db) {
+  await fs.promises.writeFile(DB_PATH, Buffer.from(db.export()));
 }
 
 const dbReady = (async () => {
@@ -35,7 +35,7 @@ const dbReady = (async () => {
     UNIQUE(user_id, provider)
   )`);
 
-  saveDb(db);
+  await saveDb(db);
   return db;
 })();
 

@@ -234,6 +234,7 @@ async function removeKey(provider) {
       headers: { 'Authorization': 'Bearer ' + token },
     });
     if (res.status === 401) { handleUnauth(); return; }
+    if (!res.ok) return;
     delete keys[provider];
     renderSavedKeys();
   } catch {
@@ -365,7 +366,7 @@ function send() {
       card.querySelector('#' + timeId).textContent = (Date.now() - t0) + 'ms';
       chat.scrollTop = chat.scrollHeight;
     }).catch(err => {
-      card.querySelector('#resp-' + id).innerHTML = `<p class="text-red-400 mono text-xs">${err.message}</p>`;
+      card.querySelector('#resp-' + id).innerHTML = `<p class="text-red-400 mono text-xs">${escHtml(err.message)}</p>`;
     });
   });
 }

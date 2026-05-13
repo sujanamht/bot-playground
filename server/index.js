@@ -1,6 +1,7 @@
 require('dotenv').config({ path: __dirname + '/.env' });
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 
@@ -22,8 +23,11 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
-// Serve static HTML files from the project root
-app.use(express.static(path.join(__dirname, '..')));
+app.use('/api/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }));
+app.use('/api/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }));
+
+// Serve static files from public/
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Auth routes (public)
 app.use('/api', authRouter);

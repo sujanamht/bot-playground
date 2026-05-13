@@ -10,6 +10,6 @@ const { dbReady, saveDb } = require('./db');
     `INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)`,
     ['admin', hash]
   );
-  saveDb(db);
+  await saveDb(db);
   console.log('done');
 })();

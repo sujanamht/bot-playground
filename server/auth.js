@@ -17,7 +17,7 @@ router.post('/register', async (req, res) => {
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
     db.run('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)', [username, email, password_hash]);
-    saveDb(db);
+    await saveDb(db);
 
     const idRes = db.exec('SELECT last_insert_rowid()');
     const userId = idRes[0].values[0][0];

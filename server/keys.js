@@ -73,7 +73,7 @@ router.post('/', async (req, res) => {
       'INSERT OR REPLACE INTO api_keys (user_id, provider, encrypted_key) VALUES (?, ?, ?)',
       [req.user.userId, provider, encrypted_key]
     );
-    saveDb(db);
+    await saveDb(db);
 
     res.status(201).json({ message: 'Key saved' });
   } catch (err) {
@@ -90,7 +90,7 @@ router.delete('/:provider', async (req, res) => {
       req.params.provider,
     ]);
     const changes = db.getRowsModified();
-    saveDb(db);
+    await saveDb(db);
 
     if (changes === 0) {
       return res.status(404).json({ error: 'Key not found' });
