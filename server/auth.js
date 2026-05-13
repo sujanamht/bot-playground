@@ -11,6 +11,9 @@ router.post('/register', async (req, res) => {
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Username, email, and password are required' });
   }
+  if (password.length > 128) {
+    return res.status(400).json({ error: 'Password must be 128 characters or fewer' });
+  }
 
   try {
     const db = await dbReady;
@@ -40,6 +43,9 @@ router.post('/login', async (req, res) => {
   const { login, password } = req.body;
   if (!login || !password) {
     return res.status(400).json({ error: 'Login and password are required' });
+  }
+  if (password.length > 128) {
+    return res.status(400).json({ error: 'Password must be 128 characters or fewer' });
   }
 
   try {

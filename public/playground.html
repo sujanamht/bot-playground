@@ -256,7 +256,7 @@ function renderSavedKeys() {
     return `<div class="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2">
       <div class="w-1.5 h-1.5 rounded-full ${c.dot || 'bg-zinc-400'} flex-shrink-0"></div>
       <span class="mono text-xs ${c.text || 'text-zinc-300'} flex-shrink-0">${escHtml(label)}</span>
-      <span class="mono text-xs text-zinc-600 flex-1 truncate">${masked}</span>
+      <span class="mono text-xs text-zinc-600 flex-1 truncate">${escHtml(masked)}</span>
       <button onclick="removeKey('${escHtml(id)}')" class="mono text-xs text-zinc-600 hover:text-red-400 transition-colors flex-shrink-0">remove</button>
     </div>`;
   }).join('');
@@ -291,6 +291,7 @@ async function initPage() {
   if (!token) { location.href = 'login.html'; return; }
 
   try {
+    // Display-only: decode JWT payload without verification (signature is checked server-side on every API call)
     const payload = JSON.parse(atob(token.split('.')[1]));
     const display = payload.username || payload.email || '';
     if (display) document.getElementById('user-label').textContent = display;
