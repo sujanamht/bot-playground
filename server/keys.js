@@ -60,6 +60,12 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'provider and key are required' });
   }
 
+  const VALID_PROVIDERS = ['gemini','groq','openrouter','cerebras','openai',
+    'anthropic','mistral','cohere','together','perplexity','grok','newsapi'];
+  if (!VALID_PROVIDERS.includes(provider)) {
+    return res.status(400).json({ error: 'Invalid provider' });
+  }
+
   try {
     const db = await dbReady;
     const encrypted_key = encrypt(key);

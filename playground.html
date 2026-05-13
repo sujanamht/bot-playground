@@ -254,9 +254,9 @@ function renderSavedKeys() {
     const masked = keys[id].slice(0,6) + '••••••••';
     return `<div class="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2">
       <div class="w-1.5 h-1.5 rounded-full ${c.dot || 'bg-zinc-400'} flex-shrink-0"></div>
-      <span class="mono text-xs ${c.text || 'text-zinc-300'} flex-shrink-0">${label}</span>
+      <span class="mono text-xs ${c.text || 'text-zinc-300'} flex-shrink-0">${escHtml(label)}</span>
       <span class="mono text-xs text-zinc-600 flex-1 truncate">${masked}</span>
-      <button onclick="removeKey('${id}')" class="mono text-xs text-zinc-600 hover:text-red-400 transition-colors flex-shrink-0">remove</button>
+      <button onclick="removeKey('${escHtml(id)}')" class="mono text-xs text-zinc-600 hover:text-red-400 transition-colors flex-shrink-0">remove</button>
     </div>`;
   }).join('');
 }

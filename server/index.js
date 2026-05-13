@@ -10,8 +10,11 @@ const keysRouter = require('./keys');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:3000';
+
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+  res.header('Vary', 'Origin');
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
